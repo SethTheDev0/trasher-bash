@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+TRASH_FILES_DIR="$HOME/.local/share/Trash/files"
+TRASH_INFO_DIR="$HOME/.local/share/Trash/info"
+
+FOUND_FILES=()
+while IFS= read -r line; do
+    [ -n "$line" ] && FOUND_FILES+=("$line")
+done < <(ls -A1 "$TRASH_FILES_DIR" 2>/dev/null)
+
+if [ ${#FOUND_FILES[@]} -eq 0 ]; then
+    echo ""
+    echo "The trash is empty!"
+    echo ""
+    exit 0
+fi
+
+echo ""
+echo "--------------------------------------------------------"
+echo "Do you want to permanently remove from trash?"
+for i in "${!FOUND_FILES[@]}"; do 
+    echo "($((i + 1))) remove: ${FOUND_FILES[$i]}"
+done
+echo "--------------------------------------------------------"
+
+# Force read to look straight at the keyboard input stream
+read -p "type the number or type ALL to remove everything: " SELECTION </dev/tty
+
+# Convert input to uppercase to allow 'all' or 'ALL'
+UPPER_SELECTION=$(echo "$SELECTION" | tr '[:lower:]' '[:upper:]')
+
+# Require explicit 'ALL' to purge everything
+# Require explicit 'ALL' to purge everything
+if [[ "$UPPER_SELECTION" == "ALL" ]]; then
+    echo "Purging EVERYTHING from trash..."
+    
+    # Enable matching of hidden files (dotfiles)
+    shopt -s dotglob
+    rm -rf "$TRASH_FILES_DIR"/* "$TRASH_INFO_DIR"/* 2>/dev/null
+    shopt -u dotglob
+    
+    echo "Trash completely cleared"
+    echo ""
+    exit 0
+fi
+
+# Individual choice parsing
+EATEN_COUNT=0
+for choice in $SELECTION; do
+    INDEX=$((choice - 1))
+    if [ "$INDEX" -ge 0 ] && [ "$INDEX" -lt "${#FOUND_FILES[@]}" ]; then
+        FILE="${FOUND_FILES[$INDEX]}"
+        rm -rf "$TRASH_FILES_DIR/$FILE" "$TRASH_INFO_DIR/$FILE.trashinfo" 2>/dev/null
+        echo "Removed: $FILE"
+        ((EATEN_COUNT++))
+    fi
+done
+
+if [ "$EATEN_COUNT" -eq 0 ]; then
+    echo "Input not recognised"
+fi

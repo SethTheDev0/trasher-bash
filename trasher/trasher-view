@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+TRASH_DIR="$HOME/.local/share/Trash/files"
+
+if [ ! -d "$TRASH_DIR" ] || [ -z "$(ls -A "$TRASH_DIR" 2>/dev/null)" ]; then
+    echo ""
+    echo "The trash is empty!"
+    echo ""
+    exit 0
+
+fi
+
+echo ""
+echo "Current files in trash:"
+echo "--------------------------------------------------------"
+ls -A1 "$TRASH_DIR"
+echo "--------------------------------------------------------"
+echo ""

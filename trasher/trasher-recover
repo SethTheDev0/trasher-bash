@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+TRASH_FILES_DIR="$HOME/.local/share/Trash/files"
+TRASH_INFO_DIR="$HOME/.local/share/Trash/info"
+
+FOUND_FILES=()
+while IFS= read -r line; do
+    [ -n "$line" ] && FOUND_FILES+=("$line")
+done < <(ls -A1 "$TRASH_FILES_DIR" 2>/dev/null)
+
+if [ ${#FOUND_FILES[@]} -eq 0 ]; then
+    echo ""
+    echo "The trash is empty!"
+    echo ""
+    exit 0
+fi
+
+echo ""
+echo "--------------------------------------------------------"
+echo "Do you want to recover files from trash?"
+for i in "${!FOUND_FILES[@]}"; do 
+    echo "($((i + 1))) recover: ${FOUND_FILES[$i]}"
+done
+echo "--------------------------------------------------------"
+
+# Force read to look straight at the keyboard input stream
+read -p "type the number or type ALL to recover everything: " SELECTION </dev/tty
+
+# Convert input to uppercase to allow 'all' or 'ALL'
+UPPER_SELECTION=$(echo "$SELECTION" | tr '[:lower:]' '[:upper:]')
+
+# Require explicit 'ALL' to recover everything
+if [[ "$UPPER_SELECTION" == "ALL" ]]; then
+    echo "Recovering ALL files..."
+    for file in "${FOUND_FILES[@]}"; do 
+        restore_file "$file"
+    done
+    exit 0
+fi
+
+restore_file() {
+    local filename="$1"
+    local original_path=""
+    if [ -f "$TRASH_INFO_DIR/$filename.trashinfo" ]; then
+        original_path=$(grep -m1 "^Path=" "$TRASH_INFO_DIR/$filename.trashinfo" | cut -d= -f2-)
+        original_path=$(echo -e "${original_path//%/\\x}")
+    fi
+    [ -z "$original_path" ] && original_path="$HOME/$filename"
+    mkdir -p "$(dirname "$original_path")"
+    mv "$TRASH_FILES_DIR/$filename" "$original_path" && rm -f "$TRASH_INFO_DIR/$filename.trashinfo"
+    echo "Restored: $filename -> $original_path"
+}
+
+# Individual choice parsing
+RECOVER_COUNT=0
+for choice in $SELECTION; do
+    INDEX=$((choice - 1))
+    if [ "$INDEX" -ge 0 ] && [ "$INDEX" -lt "${#FOUND_FILES[@]}" ]; then
+        restore_file "${FOUND_FILES[$INDEX]}"
+        ((RECOVER_COUNT++))
+    fi
+done
+
+if [ "$RECOVER_COUNT" -eq 0 ]; then
+    echo "Input not recognised"
+fi
