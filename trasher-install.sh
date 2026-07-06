@@ -14,15 +14,14 @@ for script in trasher-view trasher-remove trasher-recover; do
     found_path=$(find "$REPO_DIR" -type f -name "$script" -print -quit)
     
     if [ -n "$found_path" ]; then
-        echo "Source: $found_path"
         cp "$found_path" "$TARGET_DIR/"
-        echo "Target: $TARGET_DIR/$script"
+        echo "Moved $script to $TARGET_DIR/$script"
     else
         echo "Error: Could not find $script anywhere inside $REPO_DIR"
     fi
 done
 
-echo "Granting execution permissions for $script"
+echo "Granting execution permissions for trasher scripts"
 chmod +x "$TARGET_DIR"/* 2>/dev/null
 
 echo "Injecting aliases into ~/.bashrc..."
@@ -35,11 +34,12 @@ alias trasher-remove="$HOME/.local/bin/trasher-bash/trasher-remove"
 alias trasher-recover="$HOME/.local/bin/trasher-bash/trasher-recover"
 EOF
     echo "Trasher aliases applied to ~/.bashrc"
+    echo ""
+    echo "Trasher installation complete"
+    echo "Run this last command to activate the changes in your current terminal window:"
+    echo "source ~/.bashrc"
 else
     echo "Trasher aliases already detected in ~/.bashrc, skipping injection."
+    echo ""
+    echo "Trasher installation complete"
 fi
-
-echo ""
-echo "Trasher installation complete"
-echo "Run this last command to activate the changes in your current terminal window:"
-echo "source ~/.bashrc"
